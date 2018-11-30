@@ -1,0 +1,54 @@
+# Company ask to create function which show all even numbers of fibonacci numbers
+def fib1(value):
+  list_fib = [0]    # Dont like this. list should be clear.
+  stop = 1
+  a, b = 0, 1
+  while value != stop:
+    if (a+b) % 2 == 0: 
+      list_fib.append(a+b)
+      a, b= b, a + b
+      stop+=1
+    else:
+      a, b= b, a + b
+  print(list_fib)
+  return list_fib
+
+fib(4)
+
+
+def fib2(value):
+  list_fib = []    # it's good, but i have to add a lot of code "elif"... So better i think use first func...(fib1)
+  stop = 0
+  a, b = 0, 1
+  while value != stop:
+    if (a+b) % 2 == 0: 
+      list_fib.append(a+b)
+      a, b= b, a + b
+      stop+=1
+    elif a == 0:
+      list_fib.append(a)
+      a, b= b, a + b
+      stop+=1
+    else:
+      a, b= b, a + b
+  print(list_fib)
+  return list_fib
+
+fib(4)
+
+
+def fib():                #Ideal..but it's not function. it's generator.
+  a, b = 0, 1
+  while True:
+    if (a+b) % 2 == 0: 
+      yield a+b
+    a, b= b, a + b
+
+f=fib()
+next(f)
+next(f)
+next(f)
+next(f)
+
+
+
