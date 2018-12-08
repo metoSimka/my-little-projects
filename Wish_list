@@ -1,0 +1,125 @@
+#Wish List  
+
+list_items = []
+know_list = []
+message_list = {'1':'add_item', '2' : 'check_items', '3':'buy_it', '4':'exit'}
+
+
+def main_menu():                            #Функция главного меню, просит пользователя ввести число 1 до 4
+    print ('Выберите действие,\n*Для помощи введите "help"*\n', message_list)    
+    key_menu = input()
+    if key_menu != 'help':
+        if key_menu == '1':
+            add_item()
+            
+        elif key_menu == '2':
+            check_items()
+            
+        elif key_menu == '3':
+            buy_it()
+            
+        elif key_menu == '4':
+            print('Вы вышли из приложения') 
+            return('exit')  
+        else: print('Введено неправильное значение')
+    else:
+        print("""1 - Запись/Перезапись предмета в слот
+2 - Проверка всех предметах во всех слотах
+3 - Отмечает что опредленный предмет куплен, это отобразится при проверке предмета через меню check_items
+4)Завершнение работы""")
+
+ 
+
+
+class Wish_item(object):                   
+    name ='empty'
+    price ='0'
+    url = 'none'
+    status = 'Still not purchased'
+
+item_1 = Wish_item()
+item_2 = Wish_item()
+item_3 = Wish_item()
+item_4 = Wish_item()
+item_5 = Wish_item()
+item_6 = Wish_item()
+item_7 = Wish_item()
+item_8 = Wish_item()
+item_9 = Wish_item()
+item_10 = Wish_item()
+doc = [item_1, item_2, item_3, item_4, item_5, item_6, item_7, item_8, item_9, item_10]
+
+
+def find_index():               #Функция определяет в какой слот будет перезаписывать информацию, пользователь вводит число от 1 до 10
+    try:
+        get_index_item = int(input())
+    except ValueError:
+        print('Необходимо ввести число от 1 до 10')
+        return ('Такого слота не существует')
+    fixed_index = get_index_item - 1
+    if fixed_index>=0 and fixed_index<10:
+        for item_x in doc:
+            if  fixed_index == doc.index(item_x):
+                return item_x
+    else: return ('Такого слота не существует')
+    
+
+def add_item():                         #Функция добавления информация в слот памяти. В главном меню вызывается при вводе '1'
+    print('В вашем приложение 10 слотов для хранения информации премета, какой слот вы хотите перезаписать?(от 1 до 10): ')
+    item_x = find_index()
+    if not isinstance(item_x, str):
+        print('Название предмета: ')
+        name_item = input()
+        item_x.name = name_item
+        print('Цена предмета:')
+        price_item = input()
+        item_x.price = price_item
+        print('Введите описание предмета: ')
+        url = str(input())
+        item_x.url = url
+        item_x.status = 'Still not purchased'
+    else: print(item_x)
+   
+def print_name():                       
+        print(item_1.name, item_2.name, item_3.name, item_4.name, item_5.name, item_6.name, item_7.name, item_8.name, item_9.name, item_10.name)
+
+def check_items():        #Функция проверяет всю информацию во всех слотах. В главном меню выызывается при вводе 2
+    print_name()
+    print('Какой предмет вы хотите проверить?')
+    item_checking = find_index()
+    if isinstance(item_checking, str):
+        return item_checking
+    if item_checking.name != 'empty':
+        print('Название: {}  Цена предмета: {} Описание предмета: {}'.format(item_checking.name, item_checking.price, item_checking.url))
+        if item_checking.status == 'Still not purchased': 
+            print('Предмет до сих пор не куплен\nДля продолжения нажмите любую клавишу')
+            waiting = input()
+        else: 
+            print('Предмет уже куплен, хотитет очистить слот?(Yes/any key for skip)')
+            ask_me = input()
+            if ask_me == 'Yes':
+                item_checking.name = 'empty'
+                item_checking.price = 0
+                item_checking.url = ''
+                item_checking.status = 'Still not purchased'
+    else:
+        print('Пустой слот')
+
+
+def buy_it():                     #Функция отмечает что предмет куплен, далее это будет отображаться в меню функции check_list
+    print('Отметьте какой предмет вы купили?')
+    print_name()
+    buy_item = find_index()
+    buy_item.status = 'Already purchased'
+
+
+def init_func():                  #Запускает программу и работает до тех пор пока пользователь не введет в главном меню '4'
+    print("""Приложение Список Желаний.
+__________________________________________________________________________
+Приложение имеет 10 ячеек памяти где вы можете хранить информацию о предмете:
+1)Название предмета\n2)Его стоимость\n3)Его описание""")
+
+    while main_menu() != 'exit':
+        print('loading')
+
+init_func()
