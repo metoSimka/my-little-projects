@@ -1,0 +1,481 @@
+#SeaBattle
+#from Notes import *
+import random
+import time
+Coord_horizontal = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9}
+Coord_Vertical = {'1':0, '2':10, '3':20, '4':30, '5':40, '6':50, '7':60, '8':70, '9':80, '10':90}
+around_square_list = [-11, -10, -9, -1, 1, 9, 10, 11]
+Ship = 's'
+Ship_build = 'd'
+
+def base_ships(n_decker):        #База кораблей для сравнения ввода
+	if n_decker == 4:
+		DECK = ['d','d','d','d']
+	elif n_decker == 3:
+		DECK = ['d','d','d']
+	elif n_decker == 2:
+		DECK = ['d','d']
+	elif n_decker == 1:
+		DECK = ['d']
+	else: 
+		return None
+	return DECK
+	
+checker = False
+
+
+class Game_Field(object):           
+	Game_Field_not_a_human = False
+	def __init__(self, name):
+		self.name = name
+		self.main_field = [' ']*100
+		self.enemy_field = [' ']*100
+		self.lifes = 20
+		self.decker4 = 1
+		self.decker3 = 2
+		self.decker2 = 3
+		self.decker1 = 4
+		self.turn = 0
+
+
+	def print_field(self, field):               #Печатаем поле
+		coord = ['*   A B C D E F G H I J ']
+		print (' '.join(coord))
+		for i, item in enumerate(field):
+			field[i] = str(item)
+			i_board = 1
+		for indx, elem in enumerate(field):
+			if indx % 10 == 0:
+				print('%+3s' % i_board, ' '.join(field[indx:indx+10:1]),end='\n', sep = ' ')
+				i_board += 1
+
+
+	@staticmethod
+	def offsets_square(deck):                                                  
+		around_square_list = [-1, 1, 10, -10, 11, -11, 9, -9]                   #Любой квадрат кроме :
+
+		if deck // 10 == 0 and deck % 10 == 0:                                  #  A1
+			around_square_list = [1, 10, 11]
+		
+		elif deck // 10 == 9 and deck % 10 == 0:                                #  A10
+			around_square_list = [1, -10, -9] 
+
+		elif deck // 10 == 0 and deck % 10 == 9:                                #   J1
+			around_square_list = [-1, 9, 10]
+
+		elif deck // 10 == 9 and deck % 10 == 9:                                #   J10
+			around_square_list = [-1, -10, -11] 
+
+		elif deck // 10 == 0:                                                   #   A*
+			around_square_list = [1, -1, 9, 10, 11]
+
+		elif deck // 10 == 9:                                                   #   J*
+			around_square_list = [1, -1, -9, -10, -11]
+
+		elif deck % 10 == 0:                                                    #   1*
+			around_square_list = [1, 10, -10, 11, -9]
+
+		elif deck % 10 == 9:                                                    #   10*
+			around_square_list = [-1, 10, -10, -11, 9]
+
+		return around_square_list
+
+
+	@staticmethod
+	def Shot_index():                                    # Ввод пользователя координат выбора клетки поля, возвращает число(далее индекс)
+		idx_field = 0
+		horz =' '
+		vert =' '
+		while True:
+			print('Введите координаты через пробел(буква, цифра)')
+			try:
+				horz, vert = map(str, input().split())
+				horz = horz.upper()
+				if horz in Coord_horizontal and vert in Coord_Vertical:
+					idx_field = Coord_horizontal.get(horz) + Coord_Vertical.get(vert)
+					return int(idx_field) 
+				else: 
+					print('Введен неверный формат координат!(Пример: "A 10"')
+			except ValueError:
+				print('Введен неверный формат координат!(Пример: "A 10"')
+
+
+
+	@staticmethod
+	def compare_index(x1, x2, l):                    # Проверяет что начало и конец корабля находится на одной линии( не буквой Г,
+		y1 = x1//10             #Десятки идекса/10           # не переносится с краев поля, и обшая длинна палубника соответствует длинне и целостности корабля
+		d1 = y1*10                                           
+		s1 = x1-d1               #числа индекса
+		
+		y2 = x2//10
+		d2 = y2*10
+		s2 = x2-d2
+
+		if ((y1 == y2) and (abs(y1-y2)<=l)) or ((s1 == s2) and (abs(s1-s2)<=l)):
+			return True
+		else:
+			return False
+
+	def right_way(self, r_indx, r_deck):                          #Достраиваем многопалубник в соответствующую сторону
+		r_d = r_deck
+		r_i = r_indx
+		r_deck -= 1
+		if r_i+r_d <= 100 and self.compare_index(r_i, r_i+r_deck, r_deck)==True:
+			for _ in range(r_deck):
+				r_indx += 1
+				if self.compare_input_options(r_indx)==True:
+					continue
+				else: 
+					self.clear_elem()
+					return False
+			if self.main_field[r_i:r_i+(r_d*1):1] == base_ships(r_d):
+				self.main_field[r_i:r_i+(r_d*1):1] = Ship*r_d			
+				return True
+		else:
+			
+			self.clear_elem()
+			return False
+
+	def left_way(self, l_indx, l_deck):
+		l_d = l_deck
+		l_i = l_indx
+		l_deck -= 1
+
+		if l_indx-l_deck >=0 and self.compare_index(l_i, l_i-(l_deck*1), l_deck)==True:
+			for _ in range(l_deck):
+				if self.compare_input_options(l_indx)==True:
+					l_indx -= 1
+				else: 
+					self.clear_elem()
+					return False	
+			if self.main_field[l_i:l_i-(l_d*1):-1] == base_ships(l_d):
+				self.main_field[l_i:l_i-(l_d*1):-1] = Ship*l_d			
+				return True
+		else:
+			self.clear_elem()
+			return False
+			
+	def up_way(self, u_indx, u_deck):
+		u_d = u_deck
+		u_i = u_indx
+		u_deck -= 1
+
+		if u_indx-(u_deck*10) >=0 and self.compare_index(u_i, u_i-(u_deck*10), u_deck)==True:
+			for _ in range(u_deck):
+				if self.compare_input_options(u_indx)==True:
+					u_indx -= 10
+				else: 
+					self.clear_elem()
+					return False
+			if self.main_field[u_i:u_i-(u_d*10):-10] == base_ships(u_d):
+				self.main_field[u_i:u_i-(u_d*10):-10] = Ship*u_d				
+				return True
+		else:
+			self.clear_elem()
+			return False
+
+
+
+	def down_way(self, d_indx, d_deck):
+		d_d = d_deck
+		d_i = d_indx
+		d_deck -= 1
+
+		if d_indx+(d_deck*10) <=100 and self.compare_index(d_i, d_i+(d_deck*10), d_deck)==True:
+			for _ in range(d_deck):
+				if self.compare_input_options(d_indx)==True:
+					d_indx += 10
+				else: 
+					self.clear_elem()
+					return False
+			if self.main_field[d_i:d_i+(d_d*10):10] == base_ships(d_d):
+				self.main_field[d_i:d_i+(d_d*10):10] = Ship*d_d
+				return True
+		else:
+			self.clear_elem()
+			return False
+
+
+
+	def clear_elem(self):                                   #Очищаем все поле от недостроеных кораблей "d"
+		for i, _ in enumerate(self.main_field):
+				if self.main_field[i] == Ship_build:
+					self.main_field[i] = ' '
+
+
+	def square_is_empty(self, square_empty_index):    #Проверяем пустоту квадрата
+		if self.main_field[square_empty_index] == ' ':
+			return True
+		else:
+			return False
+
+
+
+	def ship_around(self, square_ship):                #Проверяем все ячейки вокруг выбранной
+		for sq in self.offsets_square(square_ship):
+			if self.main_field[square_ship+sq] == ' ' or self.main_field[square_ship+sq] == Ship_build:
+				continue
+			else:
+				return False	
+
+		return True			
+
+			
+	def deck_insert(self, idx):           #Записываем палубу в квадрат
+		self.main_field[idx] = Ship_build
+
+	def shuffle_ship(self):
+		while self.decker1+self.decker2+self.decker3+self.decker4 != 0:		
+			if self.decker4 != 0:
+				self.random_insert(4)
+				self.decker4 -= 1
+			if self.decker3 != 0:
+				for _ in range(2):
+					self.random_insert(3)
+					self.decker3 -= 1
+
+			if self.decker2 != 0:
+				for _ in range(3):
+					self.random_insert(2)
+					self.decker3 -= 1
+
+			if self.decker1 != 0:
+				for _ in range(4):
+					self.random_insert(1)
+					self.decker3 -= 1
+				
+
+				
+		print('{} Ваше поле сгенерировано!'.format(self.name))
+		self.clear_elem()
+		self.print_field(self.main_field)
+
+	def random_insert(self, random_count):                                    # Рандомно вводим корабли
+		while True:
+			random_id = random.randint(0, 99)
+			if self.compare_input_options(random_id) == True:
+				if random_count == 1:
+					self.main_field[random_id] = Ship
+					return None
+			else:
+				random_way = random.randint(0, 3)
+				if random_way == 0:
+					if self.right_way(random_id, random_count) == True:
+						rkey = False
+						return None
+				elif random_way ==1:
+					if self.left_way(random_id, random_count) == True:
+						rkey = False
+						return None
+				elif random_way ==2:
+					if self.up_way(random_id, random_count) == True:
+						rkey = False
+						return None
+				elif random_way ==3:
+					if self.down_way(random_id, random_count) == True:
+						rkey = False
+						return None
+
+
+
+
+	def compare_input_options(self, insert_index):        #Проверяем что квадрат пустой И вокруг квадрата нет других кораблей -> записываем корабаль в квадрат
+		if self.square_is_empty(insert_index) == True and self.ship_around(insert_index) == True:
+			self.deck_insert(insert_index)
+			return True
+		else: 
+			return False
+
+
+
+	def insert_all_ships(self, count_deck):                                #Ручная установка кораблей
+		print('Установите свой {} палубник, укажите координаты первой клетки'.format(count_deck))  
+		self.print_field(self.main_field)               
+		ins_deck = self.Shot_index()
+		if self.compare_input_options(ins_deck) == True:
+			if count_deck == 1:
+				self.main_field[ins_deck] = Ship
+				self.print_field(self.main_field)
+			else:
+				self.print_field(self.main_field)
+				print('В какую сторону достроить ваш {}-палубник?'.format(count_deck),'\nw - Вверх\ns - Вниз\na- Влево\nd-Вправо')
+				way = str(input())
+				if way == 'd':
+					if self.right_way(ins_deck, count_deck) != True:	
+						print('Установка в данном направлении невозможна')	
+				elif way =='a':
+					if self.left_way(ins_deck, count_deck) != True:
+						print('Установка в данном направлении невозможна')
+				elif way =='w':
+					if self.up_way(ins_deck, count_deck) != True:
+						print('Установка в данном направлении невозможна')
+				elif way =='s':
+					if self.down_way(ins_deck, count_deck) != True:
+						print('Установка в данном направлении невозможна')
+				else:
+					print('Введие: w, s, a, d')
+		else: 
+			print('Установка в данной клетке невозможна')
+			return False
+		self.print_field(self.main_field)
+
+
+
+def create_player():                                           #Начало программы, создаем экземпляры класса - игроков и запускаем игровой цикл.
+	not_created = True
+	while not_created == True:
+		print('Введите количество игроков: ')
+		num_players = input()
+		if num_players == '1':
+			print('Имя игрока: ')
+			name_p1=input()
+			Player_one = Game_Field(name_p1)
+			Player_two = Game_Field('Player Computer')
+			Player_two.Game_Field_not_a_human = True
+			not_created = False
+		elif num_players == '2':
+			print('Имя первого игрока: ')
+			name_p1= input()
+			Player_one = Game_Field(name_p1)
+			print('Имя второго игрока: ')
+			name_p2= input()
+			Player_two = Game_Field(name_p2)
+			not_created = False
+		else:
+			print('Введите число 1 или 2')
+	print('Если хотите установить корабли случайным образом введите "Yes",либо нажите Enter')
+	ask_random = input().lower()
+	if ask_random == "yes":
+		game_start_random(Player_one, Player_two)
+	else:
+		game_start(Player_one, Player_two)
+
+def game_start_random(R1, R2):                #Если выбрали рандомный способ установки кораблей отправляемся сюда
+	R1.shuffle_ship()
+	R2.shuffle_ship()
+	turn_random = random.randint(0, 1)
+	if turn_random == 1:
+		R1.turn = 1
+	else:
+		R2.turn = 1
+	if R1.turn>R2.turn:
+		game_proccess(R1, R2)
+	else:
+		game_proccess(R2, R1)
+
+
+def game_start(PL1, PL2):                       #Если выбрали обычный споспоб установки кораблей игра начинается здесь
+	print("""\nДобро пожаловать в игру "Морской Бой", для начала установите корабли на свое поле.
+Первый устанавливает {}, затем {}""".format(PL1.name, PL2.name))
+	
+	while PL1.decker1+PL1.decker2+PL1.decker3+PL1.decker4 != 0:
+		try:
+			print("""\nКакой кораль вы хотите установить?\n 
+Вам доступны: \n{}: четырехпалубников, {}: трехпалубникв, {} двухпалубников, {} одноалубников""".format(PL1.decker4,PL1.decker3,PL1.decker2,PL1.decker1)) 
+			print('Введите от 1 до 4: ')
+			ask_deck_one = int(input())
+			if ask_deck_one == 4 and PL1.decker4 != 0:
+				if PL1.insert_all_ships(ask_deck_one) != False:
+					PL1.decker4 -= 1
+			elif ask_deck_one == 3 and PL1.decker3 != 0: 
+				if PL1.insert_all_ships(ask_deck_one) != False:
+					PL1.decker3 -= 1
+			elif ask_deck_one == 2 and PL1.decker2 != 0:
+				if PL1.insert_all_ships(ask_deck_one) != False:
+					PL1.decker2 -= 1
+			elif ask_deck_one == 1 and PL1.decker1 != 0:
+				if PL1.insert_all_ships(ask_deck_one) != False:
+					PL1.decker1 -= 1
+			else:
+				print('Вы ввели число вне диапозона от 1 до 4, либо все ваши {}-палубники уже установлены'.format(ask_deck_one))
+		except ValueError:
+			print('Введите пожалуйста число от 1 до 4')
+	print('{} Успешно установил все корабли на свое поле'.format(PL1.name))
+
+	if PL2.Game_Field_not_a_human == False:
+		print('Игрок {}, ваша очередь установить ваши корабли'.format(PL2.name))
+		while PL2.decker1+PL2.decker2+PL2.decker3+PL2.decker4 != 0:
+			try:
+				print("""Какой кораль вы хотите установить? 
+Вам доступны: \n{}: четырехпалубников, {}: трехпалубникв, {} двухпалубников, {} одноалубников""".format(PL2.decker4,PL2.decker3,PL2.decker2,PL2.decker1))
+				print('Введите от 1 до 4: ')
+				ask_deck_two = int(input())
+				if ask_deck_two == 4 and PL2.decker4 != 0:
+					if PL2.insert_all_ships(ask_deck_two) != False:
+						PL2.decker4 -= 1
+				elif ask_deck_two == 3 and PL2.decker3 != 0:
+					if PL2.insert_all_ships(ask_deck_two) != False:
+						PL2.decker3 -= 1
+				elif ask_deck_two == 2 and PL2.decker2 != 0:
+					if PL2.insert_all_ships(ask_deck_two) != False:
+						PL2.decker2 -= 1
+				elif ask_deck_two == 1 and PL2.decker1 != 0:
+					if PL2.insert_all_ships(ask_deck_two) != False:
+						PL2.decker1 -= 1
+				else:
+					print('Вы ввели число вне диапозона от 1 до 4, либо все ваши {}-палубники уже установлены'.format(ask_deck_one))
+			except ValueError:
+				print('Введите пожалуйста число от 1 до 4')
+		print('{} Успешно установил все корабли на свое поле'.format(PL2.name))
+	else:
+		pass
+
+	turn_random = random.randint(0, 1)
+	if turn_random == 1:
+		PL1.turn = 1
+	else:
+		PL2.turn = 1
+	if PL1.turn>PL2.turn:
+		game_proccess(PL1, PL2)
+	else:
+		game_proccess(PL2, PL1)
+
+
+
+def switch_turn(Pls1,Pls2):                                  #Смена хода игроков
+	Pls1.turn, Pls2.turn = Pls2.turn, Pls1.turn
+
+
+
+def turn(turn_player, wait_player):                          #Непосредственно ход - выстрел игрока
+	print('Ваш ход, {}! Перед вами поле противника!'.format(turn_player.name))
+	turn_player.print_field(turn_player.enemy_field)
+	print('Введите координаты выстрела: ')
+	shoot = turn_player.Shot_index()
+
+	check_square_shoot(turn_player,wait_player, shoot) 
+	return None
+
+
+def check_square_shoot(force_player, forced_player,shoot_indx):            #Функция выстрела
+	if forced_player.main_field[shoot_indx] == ' ':
+		forced_player.main_field[shoot_indx] = 'o'
+		force_player.enemy_field[shoot_indx] = 'o'
+		print('Мимо!')
+		switch_turn(force_player, forced_player)
+		return None
+
+	elif forced_player.main_field[shoot_indx] == 's':
+		forced_player.main_field[shoot_indx] = 'x'
+		force_player.enemy_field[shoot_indx] = 'x'
+		print('Попадание!')
+		forced_player.lifes -= 1
+
+	elif forced_player.main_field[shoot_indx] == 'o':
+		print('Вы уже стреляли в этот сектор, выберите другой квадрат!')
+	elif forced_player.main_field[shoot_indx] == 'x':
+		print('В этом квадрате уже был подбит корабль, выберите другой квадрат!')
+
+
+def game_proccess(P1,P2):                                  #Игровой цикл, завершается победой одного из игроков.
+	while P1.lifes > 0 and P2.lifes > 0:
+		if P1.turn>P2.turn:
+			turn(P1,P2)
+		else: turn(P2,P1)
+	print('Game over')
+	if P1.lifes > P2.lifes:
+		print('Поздравляем {}, вы выиграли!'.format(P1.name))
+	else:
+		print('Поздравляем {}, вы выиграли!'.format(P2.name))
+
+create_player()
